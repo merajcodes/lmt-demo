@@ -2,6 +2,9 @@ using lmt;
 using lmt.Services;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using OpenTelemetry.Trace;
+using SeliseBlocks.LMT.Client;
+using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +21,23 @@ builder.Services.AddSingleton<IMongoClient>(serviceProvider =>
 });
 
 builder.Services.AddScoped<IItemsService, ItemsService>();
+
+builder.Services.AddLmtClient(builder.Configuration);
+
+var lmtOptions = builder.Configuration.GetSection("Lmt").Get<LmtOptions>() ?? new LmtOptions();
+var lmtActivitySourceName = lmtOptions.ServiceId;
+
+builder.Services.AddSingleton(new ActivitySource(lmtActivitySourceName));
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracerBuilder =>
+    {
+        tracerBuilder
+            .AddSource(lmtActivitySourceName)
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddLmtTracing(lmtOptions);
+    });
+
 
 var app = builder.Build();
 
