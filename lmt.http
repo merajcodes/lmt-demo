@@ -1,0 +1,6 @@
+@lmt_HostAddress = http://localhost:5108
+
+GET {{lmt_HostAddress}}/api/items
+Accept: application/json
+
+###
